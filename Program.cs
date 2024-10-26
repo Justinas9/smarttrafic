@@ -2,7 +2,6 @@ using CustomIdentity.Data;
 using CustomIdentity.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,13 +26,13 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
-var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-await CreateRolesAndAdminUser(roleManager, userManager);
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    await CreateRolesAndAdminUser(roleManager, userManager);
 }
 async Task CreateRolesAndAdminUser(RoleManager<IdentityRole> roleManager, UserManager<AppUser> userManager)
 {
-    string[] roleNames = { "Admin", "User" };
+    string[] roleNames = { "Admin", "User", "DeepUser" }; // Added DeepUser role
     foreach (var roleName in roleNames)
     {
         if (!await roleManager.RoleExistsAsync(roleName))
@@ -65,7 +64,6 @@ async Task CreateRolesAndAdminUser(RoleManager<IdentityRole> roleManager, UserMa
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
