@@ -1,0 +1,34 @@
+﻿@model ManageRolesViewModel
+
+<h2>Manage User Roles</h2>
+
+<table class="table">
+    <tr>
+        <th>User</th>
+        <th>Email</th>
+        <th>Current Role</th>
+        <th>Update Role</th>
+    </tr>
+    @foreach (var user in Model.Users)
+    {
+        <tr>
+            <td>@user.UserName</td>
+            <td>@user.Email</td>
+            <td>
+                @string.Join(", ", Model.UserRoles.ContainsKey(user.Id) ? Model.UserRoles[user.Id] : new List<string>())
+            </td>
+            <td>
+                <form asp-action="UpdateUserRole" method="post">
+                    <input type="hidden" name="userId" value="@user.Id" />
+                    <select name="role" class="form-control">
+                        @foreach (var role in Model.Roles)
+                        {
+                            <option value="@role.Name">@role.Name</option>
+                        }
+                    </select>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </form>
+            </td>
+        </tr>
+    }
+</table>

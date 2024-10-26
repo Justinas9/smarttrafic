@@ -2,6 +2,7 @@ using CustomIdentity.Data;
 using CustomIdentity.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,41 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(
     .AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+await CreateRolesAndAdminUser(roleManager, userManager);
+}
+async Task CreateRolesAndAdminUser(RoleManager<IdentityRole> roleManager, UserManager<AppUser> userManager)
+{
+    string[] roleNames = { "Admin", "User" };
+    foreach (var roleName in roleNames)
+    {
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            await roleManager.CreateAsync(new IdentityRole(roleName));
+        }
+    }
+
+    // Seed a default admin user if not exists
+    var adminUser = await userManager.FindByEmailAsync("admin@admin.com");
+    if (adminUser == null)
+    {
+        var newAdmin = new AppUser
+        {
+            UserName = "admin@admin.com",
+            Email = "admin@admin.com",
+            EmailConfirmed = true,
+            Name = "Admin"
+        };
+        var result = await userManager.CreateAsync(newAdmin, "AdminPassword123!");
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(newAdmin, "Admin");
+        }
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -37,7 +73,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

@@ -5,4 +5,10 @@
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+
+    @* Show Admin Panel button only if user is an Admin *@
+    @if (User.IsInRole("Admin"))
+    {
+        <a href="@Url.Action("ManageRoles", "Admin")" class="btn btn-primary mt-3">Go to Admin Panel</a>
+    }
 </div>
