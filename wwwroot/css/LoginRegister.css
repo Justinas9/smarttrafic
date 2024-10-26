@@ -1,0 +1,41 @@
+﻿body {
+    background: url('https://www.geotab.com/CMS-Media-production/Blog/NA/_2018/July/traffic_congestion/blog-traffic-congestion-hero@2x.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+.card {
+    position: relative;
+    margin: auto;
+    padding: 2rem;
+    max-width: 400px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+}
+
+h2 {
+    color: #ffffff;
+}
+
+.form-control {
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.btn-primary {
+    background-color: #007bff; /* Change to a color that suits your theme */
+    border: none;
+    border-radius: 5px;
+}
+
+a {
+    color: #007bff;
+}
+
+a:hover {
+    color: #0056b3;
+}

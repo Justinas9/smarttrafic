@@ -12,24 +12,27 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(
     options => options.UseSqlServer(connectionString));
 
-builder.Services.AddIdentity<AppUser, IdentityRole>(
-    options =>
-    {
-        options.Password.RequiredUniqueChars = 0;
-        options.Password.RequireUppercase = false;
-        options.Password.RequiredLength = 8;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireLowercase = false;
-    })
-    .AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+{
+    options.Password.RequiredUniqueChars = 0;
+    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireLowercase = false;
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
 
 var app = builder.Build();
+
+// Role and Admin User Seeding
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     await CreateRolesAndAdminUser(roleManager, userManager);
 }
+
 async Task CreateRolesAndAdminUser(RoleManager<IdentityRole> roleManager, UserManager<AppUser> userManager)
 {
     string[] roleNames = { "Admin", "User", "DeepUser" }; // Added DeepUser role
