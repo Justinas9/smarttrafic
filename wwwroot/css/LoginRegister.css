@@ -1,41 +1,185 @@
 ﻿body {
     background: url('https://www.geotab.com/CMS-Media-production/Blog/NA/_2018/July/traffic_congestion/blog-traffic-congestion-hero@2x.jpg') no-repeat center center fixed;
     background-size: cover;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden; /* Prevents scroll issues */
+}
+
+.content-wrapper {
+    width: 100%;
+    max-width: 430px;
+    padding: 0 20px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .card {
     position: relative;
-    margin: auto;
-    padding: 2rem;
-    max-width: 400px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
     border-radius: 10px;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-
+    padding: 35px;
+    overflow: hidden;
 }
+    .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        backdrop-filter: blur(10px);
+        z-index: -1; /* Ensures the blur is behind the text */
+    }
 
-h2 {
-    color: #ffffff;
-}
+    .card h2 {
+        font-size: 32px;
+        font-weight: 600;
+        text-align: center;
+        color: #fff;
+        margin-bottom: 30px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
 
 .form-control {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.07);
     border: none;
-    border-radius: 5px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.8);
+    border-radius: 3px;
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 300;
+    color: #fff;
+    transition: all 0.3s ease;
+
 }
+
+    .form-control:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+label {
+    display: block;
+    margin-top: 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+}
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: transparent; /* Keeps the background clear */
+    border: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.6); /* Crisper bottom line */
+    border-radius: 0; /* Keeps the bottom line straight */
+    margin-top: 8px;
+    font-size: 15px;
+    font-weight: 400;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+    .form-control:focus {
+        outline: none;
+        background: transparent;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.9); /* Stronger color on focus */
+        box-shadow: none;
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.8); /* Makes placeholder text more visible */
+        font-weight: 300;
+    }
 
 .btn-primary {
-    background-color: #007bff; /* Change to a color that suits your theme */
+    width: 100%;
+    padding: 12px 0;
+    background-color: #fff;
+    color: #080710;
+    font-size: 16px;
+    font-weight: 600;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
 }
 
-a {
-    color: #007bff;
+    .btn-primary:hover {
+        background-color: gray;
+        transform: scale(0.99);
+    }
+
+.form-check-label {
+    color: #fff;
+    margin-top: 10px;
 }
 
-a:hover {
-    color: #0056b3;
+.text-decoration-none {
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+    .text-decoration-none:hover {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+.text-danger {
+    color: #ff3e3e !important;
+    font-size: 12px;
+    margin-top: 5px;
+}
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0)
+}
+/* Adjustments for the remember me checkbox */
+.form-check-input {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+    .form-check-input:checked {
+        background-color: #fff;
+        border-color: #fff;
+    }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: 0 15px;
+    }
+
+    .card {
+        padding: 25px;
+    }
+
+        .card h2 {
+            font-size: 28px;
+        }
 }

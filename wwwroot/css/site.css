@@ -71,3 +71,13 @@ footer {
         footer a:hover {
             text-decoration: underline; /* Underline on hover */
         }
+
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+.leaflet-container {
+    background: #000
+}

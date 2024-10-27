@@ -5,8 +5,8 @@
     ViewData["Title"] = "Login";
 }
 <link rel="stylesheet" href="~/css/LoginRegister.css" asp-append-version="true" />
-<div class="row d-flex align-items-center justify-content-center" >
-    <div class="col-md-3 card glassmorphism p-3">
+<div class="content-wrapper">
+    <div class="card">
         <h2 class="text-center">Login</h2>
         <form asp-action="Login" method="post" asp-route-returnurl="@ViewData["ReturnUrl"]">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>

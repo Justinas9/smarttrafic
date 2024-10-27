@@ -51,6 +51,13 @@ namespace CustomIdentity.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
+        public IActionResult SaveCoordinates(double Latitude, double Longitude)
+        {
+            // Process or store coordinates
+            // e.g., Save to database, log, or perform other actions
+
+            return RedirectToAction("Map"); // Redirect or return a view
+        }
 
         [HttpPost]
         public async Task<IActionResult> Register(RegisterVM model, string? returnUrl = null)
@@ -174,4 +181,5 @@ namespace CustomIdentity.Controllers
             return RedirectToAction(nameof(HomeController.Index), "Home");
         }
     }
+
 }
