@@ -23,16 +23,22 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Namai</a>
+                            <a class="nav-link text-dark @(ViewContext.RouteData.Values["Controller"].ToString() == "Home" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")"
+                               asp-area="" asp-controller="Home" asp-action="Index">Namai</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Apie mus</a>
+                            <a class="nav-link text-dark @(ViewContext.RouteData.Values["Controller"].ToString() == "Home" && ViewContext.RouteData.Values["Action"].ToString() == "Privacy" ? "active" : "")"
+                               asp-area="" asp-controller="Home" asp-action="Privacy">Apie mus</a>
                         </li>
-                        @* Show Admin Panel button if the user is an Admin *@
+                        <li class="nav-item">
+                            <a class="nav-link text-dark @(ViewContext.RouteData.Values["Controller"].ToString() == "Video" && ViewContext.RouteData.Values["Action"].ToString() == "Upload" ? "active" : "")"
+                               asp-controller="Video" asp-action="Upload">Įkelti vaizdo įrašą</a>
+                        </li>
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="ManageRoles">Go to Admin Panel</a>
+                                <a class="nav-link text-dark @(ViewContext.RouteData.Values["Controller"].ToString() == "Admin" && ViewContext.RouteData.Values["Action"].ToString() == "ManageRoles" ? "active" : "")"
+                                   asp-area="" asp-controller="Admin" asp-action="ManageRoles">Admin panel</a>
                             </li>
                         }
                     </ul>

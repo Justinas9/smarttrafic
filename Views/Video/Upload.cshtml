@@ -1,0 +1,117 @@
+﻿@model VideoUploadViewModel
+
+@{
+    ViewData["Title"] = "Upload Video";
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <strong>Prašome pataisyti klaidas žemiau:</strong>
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+<link rel="stylesheet" href="~/css/upload.css" asp-append-version="true" />
+<div class="container">
+    <div class="row">
+        <!-- Left Side: Upload Form -->
+        <div class="col-md-4 upload-form">
+            <h2>Įkelti įrašą</h2>
+
+            <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label asp-for="CoordinateX" class="form-label">Platuma</label>
+                    <input asp-for="CoordinateX" id="latitude" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="CoordinateY" class="form-label">Ilguma</label>
+                    <input asp-for="CoordinateY" id="longitude" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="StartTime" class="form-label">Įrašo pradžios laikas</label>
+                    <input asp-for="StartTime" class="form-control" type="datetime-local" required />
+                    <span asp-validation-for="StartTime" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="VideoFile" class="form-label">Pasirinkti failą</label>
+                    <input asp-for="VideoFile" class="form-control" type="file" accept=".mkv, .mp4, video/*" required />
+                    <span asp-validation-for="VideoFile" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Įkelti</button>
+            </form>
+        </div>
+
+        <!-- Right Side: Map -->
+        <div class="col-md-8">
+            <h2>Pasirinkti sankryžą</h2>
+            <div id="map" style="height: 400px;"></div>
+        </div>
+    </div>
+
+    <!-- Explanation Section in the Middle -->
+    <div class="row mt-4">
+        <div class="col-md-12 text-center explanation">
+            <h4>Kas bus daroma su jūsų įkeltu vaizdo įrašu?</h4>
+            <p>
+                Įkeltas vaizdo įrašas bus apdorojamas siekiant nustatyti ir analizuoti eismo situaciją pasirinktoje sankryžoje.
+                Jūsų pateiktos koordinatės padės tiksliai nustatyti stebimos vietos poziciją žemėlapyje.
+                Apdorojus vaizdo įrašą, bus pateikta analizės ataskaita apie eismo duomenis.
+            </p>
+            <p>
+                Atkreipkite dėmesį, kad įrašas bus naudojamas tik moksliniams tyrimams ir duomenų analizei.
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Initialize the map and set its view to a default location (e.g., Vilnius, Lithuania)
+    var map = L.map('map').setView([54.6872, 25.2797], 13);
+
+    // Load and display a map layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Variable to hold the last marker
+    var currentMarker = null;
+
+    // Add a click event listener to the map
+    map.on('click', function (e) {
+        // Get the latitude and longitude of the clicked location
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+
+        // If there's an existing marker, remove it
+        if (currentMarker) {
+            map.removeLayer(currentMarker);
+        }
+
+        // Add a new marker and save it as the current marker
+        currentMarker = L.marker([lat, lng]).addTo(map)
+            .bindPopup("Koordinatės: " + lat.toFixed(5) + ", " + lng.toFixed(5))
+            .openPopup();
+
+        // Fill the hidden inputs in the form with the selected coordinates
+        document.getElementById("latitude").value = lat;
+        document.getElementById("longitude").value = lng;
+    });
+</script>
+
+@section Scripts {
+    <!-- Client-side validation script (optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.11/jquery.validate.unobtrusive.min.js"></script>
+}

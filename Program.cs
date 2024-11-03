@@ -1,16 +1,19 @@
 using CustomIdentity.Data;
 using CustomIdentity.Models;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Get the connection string from configuration
 var connectionString = builder.Configuration.GetConnectionString("default");
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddDbContext<AppDbContext>(
-    options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
@@ -23,7 +26,26 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+// Configure the form options for larger file uploads
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 2147483648; // Limit for video uploads, e.g., 2GB
+});
+
+// Optionally set the MaxRequestBodySize for Kestrel
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 2147483648; // 2GB
+});
+
 var app = builder.Build();
+
+// Ensure the videos directory exists
+var videosPath = Path.Combine(app.Environment.WebRootPath, "videos");
+if (!Directory.Exists(videosPath))
+{
+    Directory.CreateDirectory(videosPath);
+}
 
 // Role and Admin User Seeding
 using (var scope = app.Services.CreateScope())

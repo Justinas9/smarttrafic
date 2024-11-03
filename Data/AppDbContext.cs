@@ -10,4 +10,5 @@ public class AppDbContext : IdentityDbContext<AppUser>
     {
 
     }
+    public DbSet<VideoRequest> VideoRequests { get; set; }
 }

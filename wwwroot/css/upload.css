@@ -1,0 +1,79 @@
+﻿/* Basic Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    color: #333;
+}
+
+/* Container styling */
+.container {
+    max-width: 1100px;
+    margin-top: 20px;
+}
+
+/* Form Section */
+.upload-form {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+    .upload-form h2 {
+        color: #4a90e2;
+        font-weight: 500;
+    }
+
+    .upload-form .form-label {
+        font-weight: 500;
+        color: #555;
+    }
+
+    .upload-form .btn-primary {
+        background-color: #4a90e2;
+        border: none;
+        transition: background 0.3s;
+    }
+
+        .upload-form .btn-primary:hover {
+            background-color: #357abd;
+        }
+
+/* Map Section */
+#map {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Explanation Section */
+.explanation {
+    background: #e9f7fd;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 8px;
+    border-left: 5px solid #4a90e2;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+    .explanation h4 {
+        color: #4a90e2;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .explanation p {
+        color: #666;
+        font-size: 0.95em;
+    }
+
+/* Responsive Styling */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+
+    #map {
+        height: 300px;
+    }
+}

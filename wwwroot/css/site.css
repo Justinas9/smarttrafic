@@ -81,3 +81,7 @@ footer {
 .leaflet-container {
     background: #000
 }
+.nav-link.active {
+    font-weight: 600; /* Makes the active link bold */
+    color: #0056b3 !important; /* Sets a specific color */
+}
