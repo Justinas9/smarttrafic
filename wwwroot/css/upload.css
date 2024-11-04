@@ -4,12 +4,6 @@ body {
     color: #333;
 }
 
-/* Container styling */
-.container {
-    max-width: 1100px;
-    margin-top: 20px;
-}
-
 /* Form Section */
 .upload-form {
     background: #f9f9f9;
