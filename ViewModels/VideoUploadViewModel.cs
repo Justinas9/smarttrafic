@@ -18,4 +18,5 @@ public class VideoUploadViewModel
     [Required]
     [Display(Name = "Upload Video")]
     public IFormFile VideoFile { get; set; }
+    public int VideoRequestID { get; set; }
 }

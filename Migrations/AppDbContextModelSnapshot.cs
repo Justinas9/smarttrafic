@@ -95,13 +95,36 @@ namespace CustomIdentity.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("CustomIdentity.Models.VideoRequest", b =>
+            modelBuilder.Entity("CustomIdentity.Models.Camera", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("IntersectionID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Cameras");
+                });
+
+            modelBuilder.Entity("CustomIdentity.Models.Intersection", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<float>("CoordinatesX")
                         .HasColumnType("real");
@@ -109,25 +132,137 @@ namespace CustomIdentity.Migrations
                     b.Property<float>("CoordinatesY")
                         .HasColumnType("real");
 
+                    b.Property<string>("Country")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Intersections");
+                });
+
+            modelBuilder.Entity("CustomIdentity.Models.Object", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<decimal?>("CO")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("MinThreshold")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("NOX")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("PM")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("VOC")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Objects");
+                });
+
+            modelBuilder.Entity("CustomIdentity.Models.ObjectDetection", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<short>("BatchNumber")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime>("DetectionTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ObjectCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ObjectID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Probability")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<int>("RequestID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("ObjectDetections");
+                });
+
+            modelBuilder.Entity("CustomIdentity.Models.Video", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int?>("CameraID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DurationInSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Extension")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("SizeInBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Videos");
+                });
+
+            modelBuilder.Entity("CustomIdentity.Models.VideoRequest", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("IntersectionID")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid>("UserID")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("UserName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("VideoID")
+                        .HasColumnType("int");
 
-                    b.Property<string>("VideoFile")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
+                    b.HasKey("ID");
 
                     b.ToTable("VideoRequests");
                 });

@@ -1,0 +1,233 @@
+﻿@model List<CustomIdentity.ViewModels.ObjectDetectionViewModel>
+
+@{
+    int? videoRequestId = ViewBag.VideoRequestId;
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Aptikti objektai</h3>
+            <canvas id="objectDetectionChart" width="400" height="200"></canvas>
+        </div>
+
+        <div class="col-md-6">
+            <h3>Objektų atpažinimo patikimumas</h3>
+            <canvas id="probabilityDistributionChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    
+    <div id="timechart" class="col-md-12" style="display: none;">
+        <h3>Atpažintų objektų kiekis per laiką</h3>
+        <canvas id="detectionTimeChart" width="800" height="400"></canvas>
+    </div>
+
+
+    @if (User.IsInRole("DeepUser") || User.IsInRole("Admin"))
+    {
+        <h2>Detalūs duomenys</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Objektas</th>
+                    <th>Tikimybė</th>
+                    <th>Atpažinimo laikas</th>
+                    <th>Objektų suma</th>
+                    <th>Paketo numeris</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var detection in Model)
+                {
+                    <tr>
+                        <td>@detection.ID</td>
+                        <td>@detection.ObjectID</td>
+                        <td>@detection.Probability</td>
+                        <td>@detection.DetectionTime</td>
+                        <td>@detection.ObjectCount</td>
+                        <td>@detection.BatchNumber</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+<script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+
+<script>
+    // Register necessary Chart.js components for time-based axes and other features
+    Chart.register(Chart.TimeScale, Chart.LinearScale, Chart.PointElement, Chart.LineElement, Chart.Title, Chart.Tooltip, Chart.Legend);
+
+    // Fetch object detection counts for the first two charts
+    var videoRequestId = '@videoRequestId';
+    var requestIdParam = videoRequestId && videoRequestId !== 'null' ? videoRequestId : '';
+
+    // Fetch data for Object Detection Counts
+    fetch('@Url.Action("GetObjectDetectionCounts", "Video")?requestId=' + requestIdParam)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                console.log('No data found for Object Detection Counts');
+                return;
+            }
+
+            const labels = data.map(item => item.objectID.charAt(0).toUpperCase() + String(item.objectID).slice(1));
+            const counts = data.map(item => item.objectCount);
+
+            const ctx = document.getElementById('objectDetectionChart').getContext('2d');
+            const objectDetectionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Objektų skaičius',
+                        data: counts,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Objekto skaičius'  // Y-axis label for object count
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+    // Fetch data for Probability Distribution by ObjectID
+    fetch('@Url.Action("GetProbabilityDistributionByObjectID", "Video")?requestId=' + requestIdParam)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                console.log('No data found for Probability Distribution');
+                return;
+            }
+
+            const labels = data.map(item => item.objectID.charAt(0).toUpperCase() + String(item.objectID).slice(1));
+            const avgProbabilities = data.map(item => item.avgProbability);
+
+            const ctx2 = document.getElementById('probabilityDistributionChart').getContext('2d');
+            const probabilityDistributionChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Vidutinė atpažinimo tikimybė',
+                        data: avgProbabilities,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'Vidutinė atpažinimo tikimybė'  // Y-axis label for probability
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+    if (videoRequestId) {
+        document.getElementById('timechart').style.display = '';
+        fetch('@Url.Action("GetDetectionTimeObjectCountsByRequestID", "Video")?requestId=' + requestIdParam)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    console.log('No data found for DetectionTime Object Counts');
+                    return;
+                }
+
+                // Step 1: Get unique object IDs (e.g., "car", "person", etc.)
+                const objectIDs = [...new Set(data.map(item => item.objectID))];
+
+                // Step 2: Group the data by ObjectID and ensure we have separate timelines for each object
+                const groupedData = objectIDs.map(objectID => {
+                    return {
+                        objectID: objectID,
+                        times: data.filter(item => item.objectID === objectID).map(item => new Date(item.detectionTime).getTime()), // Time as timestamp
+                        counts: data.filter(item => item.objectID === objectID).map(item => item.objectCount), // Object count at that time
+                    };
+                });
+
+                // Step 3: Prepare the datasets for the chart dynamically based on ObjectIDs
+                const datasets = groupedData.map((group, index) => ({
+                    label: group.objectID.charAt(0).toUpperCase() + group.objectID.slice(1),
+                    data: group.times.map((time, index) => ({
+                        x: time,
+                        y: group.counts[index]
+                    })),
+                    Color: getColor(index), // Use the color from the predefined list
+                    fill: false
+                }));
+
+                // Step 4: Create the chart with independent lines for each object
+                const ctx3 = document.getElementById('detectionTimeChart').getContext('2d');
+                const detectionTimeChart = new Chart(ctx3, {
+                    type: 'line',
+                    data: {
+                        datasets: datasets
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'second',  // Set unit to seconds
+                                    unitStepSize: 1,  // One step per second
+                                    displayFormats: {
+                                        second: 'HH:mm:ss'  // Format time as HH:mm:ss
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Time (seconds)'  // Label for the x-axis
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Objekto skaičius'  // Y-axis label for object count
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Error loading detection time chart data:', error));
+    }
+
+    // Function to get a color from the predefined list
+    function getColor(index) {
+        const colorList = [
+            '#FF5733', // Red-Orange
+            '#33FF57', // Green
+            '#3357FF', // Blue
+            '#FF33A1', // Pink
+            '#FFDD33', // Yellow
+            '#33FFFF'  // Cyan
+        ];
+        return colorList[index % colorList.length];  // Ensure index is within bounds of the color list
+    }
+
+
+</script>
+

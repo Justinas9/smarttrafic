@@ -10,18 +10,14 @@ import sys
 model = YOLO('yolov8n.pt')
 
 # Retrieve arguments from the command line
-# Expected arguments: video_path, start_time, coordinates_x, coordinates_y, session_id
 video_path = sys.argv[1]  # The path to the video file
 start_time = datetime.fromisoformat(sys.argv[2])  # Start time for processing
 coordinates_x = float(sys.argv[3])  # X coordinate
 coordinates_y = float(sys.argv[4])  # Y coordinate
-session_id = int(sys.argv[5])  # Session ID
+request_id = int(sys.argv[5])
 
 # Video capture
 cap = cv2.VideoCapture(video_path)
-
-# Generate a unique video ID for this session
-video_id = str(uuid.uuid4())
 
 # Database connection setup
 conn = pyodbc.connect(
@@ -32,14 +28,14 @@ conn = pyodbc.connect(
 )
 cursor = conn.cursor()
 
-# Define function to batch insert detection data
+# Function to batch insert detection data
 def batch_insert_detections(detections):
-    query = '''INSERT INTO ObjectDetections (VideoID, ObjectType, Probability, DetectionTime, ObjectCount, SessionID, LocationX, LocationY, BatchID)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    query = '''INSERT INTO ObjectDetections (ObjectID, Probability, DetectionTime, ObjectCount, RequestID, BatchNumber) 
+                VALUES (?, ?, ?, ?, ?, ?)'''
     cursor.executemany(query, detections)
     conn.commit()
 
-# Initialize more robust tracking
+# ObjectTracker class definition
 class ObjectTracker:
     def __init__(self, max_age=10, min_hits=3):
         self.next_id = 1
@@ -71,7 +67,6 @@ class ObjectTracker:
                 distance = np.linalg.norm(np.array(centroid) - np.array(prev_centroid))
                 size_similarity = abs(box_size - prev_box_size) / prev_box_size
 
-                # More strict matching criteria
                 if distance < 75 and size_similarity < 0.4 and cls == obj_data['type']:
                     if distance < best_distance:
                         best_match = obj_id
@@ -86,12 +81,10 @@ class ObjectTracker:
                 obj_data['frames_unseen'] = 0
                 updated_tracked_objects[best_match] = obj_data
 
-                # Confirm object count only after consistent detection
                 if best_match not in self.confirmed_objects and obj_data['frames_seen'] >= self.min_hits:
                     self.object_counts[cls] += 1
                     self.confirmed_objects.add(best_match)
                     new_detections.append((cls, probability, obj_data['frames_seen']))
-
             else:
                 # New object detection
                 new_id = self.next_id
@@ -141,7 +134,7 @@ while cap.isOpened():
     # Process every 5th frame to reduce computation
     if frame_count % 5 == 0:
         # Perform object detection on the current frame
-        results = model.predict(source=frame, classes=[2, 3, 5, 0, 1], conf=0.65)
+        results = model.predict(source=frame, classes=[2, 3, 5, 0, 1], conf=0.4)
 
         # Prepare detections for tracking
         current_detections = []
@@ -161,15 +154,12 @@ while cap.isOpened():
         # Prepare batch detections for database
         for cls, probability, frames_seen in new_batch_detections:
             batch_detections.append(( 
-                video_id, 
-                cls, 
-                probability, 
-                detection_time, 
+                cls,  # ObjectType
+                probability,
+                detection_time,
                 tracker.object_counts[cls],
-                session_id,  # Add session ID
-                coordinates_x,  # Add Location X
-                coordinates_y,  # Add Location Y
-                batch_id  # Add Batch ID
+                request_id,  # Request ID
+                batch_id  # Batch ID
             ))
 
         # Batch insert every 5 seconds
@@ -201,6 +191,10 @@ while cap.isOpened():
 
         # Move window to center of screen
         cv2.moveWindow('Video with Object Detection', 320, 180)
+
+        # Release frame and results to free memory after each batch
+        frame = None
+        results = None
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

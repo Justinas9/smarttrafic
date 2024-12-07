@@ -24,7 +24,7 @@
         <div class="col-md-4 upload-form">
             <h2>Įkelti įrašą</h2>
 
-            <form asp-action="Upload" method="post" enctype="multipart/form-data">
+            <form asp-action="Upload" method="post" enctype="multipart/form-data" id="videoUploadForm">
                 <div class="mb-3">
                     <label asp-for="CoordinateX" class="form-label">Platuma</label>
                     <input asp-for="CoordinateX" id="latitude" class="form-control" readonly />
@@ -74,7 +74,92 @@
     </div>
 </div>
 
+<!-- Modal for loading -->
+<div class="modal" id="loadingModal" tabindex="-1" aria-labelledby="loadingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loadingModalLabel">Vaizdo įrašo apdorojimas</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Įkeliama...</span>
+                </div>
+                <p>Jūsų vaizdo įrašas apdorojamas. Prašome palaukti.</p>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Modal for completed processing -->
+<div class="modal" id="completedModal" tabindex="-1" aria-labelledby="completedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completedModalLabel">Vaizdo įrašas apdorotas</h5>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <p class="mt-3">Vaizdo įrašas apdorotas sėkmingai!</p>
+                <div>
+                    <button class="btn btn-primary" id="viewDataBtn">Peržiūrėti duomenis</button>
+                    <button class="btn btn-secondary" id="exitBtn">Išeiti</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var videoUploadForm = document.getElementById('videoUploadForm');
+    var viewDataBtn = document.getElementById('viewDataBtn');
+    var lastVideoRequestId = null;
+
+    // Show the loading modal before the form is submitted
+    videoUploadForm.addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent default form submission
+
+        // Trigger HTML5 form validation (or jQuery validation)
+        if ($(this).valid()) {
+            // Show loading modal if form is valid
+            $('#loadingModal').modal('show');
+
+            var formData = new FormData(videoUploadForm);
+            $.ajax({
+                type: "POST",
+                url: videoUploadForm.action,
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    // Hide loading modal
+                    $('#loadingModal').modal('hide');
+
+                    // Show the completed modal with green tick
+                    $('#completedModal').modal('show');
+
+                    // Store the video request ID for later use
+                    lastVideoRequestId = response.videoRequestId;
+                },
+                error: function (xhr, status, error) {
+                    // Handle error
+                    alert("Klaida įkeliant vaizdo įrašą.");
+                    $('#loadingModal').modal('hide');
+                }
+            });
+        } else {
+            return false;
+        }
+    });
+
+    // Add event listener for View Data button
+    viewDataBtn.addEventListener('click', function () {
+        if (lastVideoRequestId) {
+            // Redirect to the review data page with the video request ID
+            window.location.href = '/Video/ReviewData?videoRequestId=' + lastVideoRequestId;
+        }
+    });
+</script>
 
 <script>
     // Initialize the map and set its view to a default location (e.g., Vilnius, Lithuania)

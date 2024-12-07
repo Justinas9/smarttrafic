@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="~/CustomIdentity.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
+    <header style="position: sticky; top: 0;">
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">IESS</a>
@@ -40,6 +40,13 @@
                                    asp-controller="Video" asp-action="Upload">Įkelti vaizdo įrašą</a>
                             </li>
                         }
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark @(ViewContext.RouteData.Values["Controller"].ToString() == "Video" && ViewContext.RouteData.Values["Action"].ToString() == "AllObjectDetections" ? "active" : "")"
+                                   asp-controller="Video" asp-action="AllObjectDetections">Peržiūrėti duomenis</a>
+                            </li>
+                        }
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
@@ -61,7 +68,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2023 - IESS - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2024 - IESS - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
