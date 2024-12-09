@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace CustomIdentity.Controllers
 {
-    [Authorize] // Ensure only logged-in users can access this
+    [Authorize] 
     public class VideoController : Controller
     {
         private readonly AppDbContext _context;
@@ -28,38 +28,6 @@ namespace CustomIdentity.Controllers
             _context = context;
             _logger = logger;
         }
-        [HttpGet]
-        public IActionResult ReviewData(int videoRequestId)
-        {
-            ViewBag.VideoRequestId = videoRequestId;
-            // Query for ObjectDetections related to the given videoRequestId
-            var objectDetectionsQuery = _context.ObjectDetections
-                .Where(od => od.RequestID == videoRequestId)
-                .OrderBy(od => od.DetectionTime);
-
-            // Map the results to a list of view model objects
-            var objectDetections = objectDetectionsQuery
-                .Select(od => new ObjectDetectionViewModel
-                {
-                    ID = od.ID,
-                    ObjectID = od.ObjectID,
-                    Probability = od.Probability,
-                    DetectionTime = od.DetectionTime,
-                    ObjectCount = od.ObjectCount,
-                    BatchNumber = od.BatchNumber
-                })
-                .ToList();
-
-            // If no detections found, return a view with an empty list or appropriate message
-            if (!objectDetections.Any())
-            {
-                ViewBag.Message = "No object detections found for this video request.";
-            }
-
-            // Return the view with the object detections data
-            return View("ViewData", objectDetections);
-        }
-
 
         // GET: Video/Upload
         [HttpGet]
@@ -76,21 +44,29 @@ namespace CustomIdentity.Controllers
         {
             if (ModelState.IsValid)
             {
+                if (model.VideoFile == null || !IsValidVideoFile(model.VideoFile))
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "The uploaded file must be a valid video format (e.g., .mp4, .avi, .mov, .mkv, .wmv)."
+                    });
+                }
+
+
                 try
                 {
-                    // Step 1: Create a new Intersection record
                     var intersection = new Intersection
                     {
                         CoordinatesX = float.Parse(model.CoordinateX),
                         CoordinatesY = float.Parse(model.CoordinateY),
-                        City = null,  // City is null
+                        City = null, 
                         Country = null,
-                        Description = null  // Description is null
+                        Description = null 
                     };
                     _context.Intersections.Add(intersection);
                     await _context.SaveChangesAsync();
 
-                    // Step 2: Generate a unique filename and save the video file
                     var videoFileName = Guid.NewGuid().ToString() + Path.GetExtension(model.VideoFile.FileName);
                     var videoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/videos", videoFileName);
 
@@ -99,48 +75,39 @@ namespace CustomIdentity.Controllers
                         await model.VideoFile.CopyToAsync(stream);
                     }
 
-                    // Step 3: Log video file size to check for any discrepancies
-                    _logger.LogInformation("Video File Length: {FileLength}", model.VideoFile.Length);
-                    _logger.LogInformation("Video File Path: {FilePath}", videoPath);
-
-                    // Step 4: Create a new Video record (do not set DurationInSeconds, it will be updated by Python)
                     var video = new Video
                     {
                         Path = videoPath,
                         Extension = Path.GetExtension(model.VideoFile.FileName),
                         SizeInBytes = model.VideoFile.Length,
-                        DurationInSeconds = null,  // Duration is null, will be set by Python script
-                        CameraID = null  // Camera is null (or can be updated later)
+                        DurationInSeconds = null, 
+                        CameraID = null 
                     };
                     _context.Videos.Add(video);
                     await _context.SaveChangesAsync();
-
-                    // Step 5: Create a new VideoRequest record with the VideoID and IntersectionID
                     var videoRequest = new VideoRequest
                     {
                         UserID = new Guid(User.FindFirstValue(ClaimTypes.NameIdentifier)),
-                        IntersectionID = intersection.ID,  // Link to the Intersection table
-                        VideoID = video.ID,  // Link to the Videos table
-                        StartTime = model.StartTime,  // Assuming this is in the ViewModel
-                        EndTime = null,  // This will be updated later when recognition is done
+                        IntersectionID = intersection.ID,  
+                        VideoID = video.ID,  
+                        StartTime = model.StartTime, 
+                        EndTime = null,  
                     };
                     _context.VideoRequests.Add(videoRequest);
                     await _context.SaveChangesAsync();
 
-                    // Set the VideoRequestID in TempData
                     TempData["VideoRequestID"] = videoRequest.ID;
 
-                    // Step 6: Prepare arguments for the Python script
+                    //yolo8 arguments
                     var pythonScriptPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "recognition.py");
                     var startTimeString = videoRequest.StartTime.ToString("yyyy-MM-dd HH:mm:ss");
                     var coordinatesX = intersection.CoordinatesX;
                     var coordinatesY = intersection.CoordinatesY;
                     var sessionId = videoRequest.ID;
 
-                    // Prepare the full argument string for the Python script
                     var arguments = $"\"{videoPath}\" \"{startTimeString}\" {coordinatesX} {coordinatesY} {sessionId}";
 
-                    // Step 7: Run the Python recognition script (sending relevant details)
+                    //run video recognition
                     var processInfo = new ProcessStartInfo
                     {
                         FileName = "python",
@@ -151,18 +118,15 @@ namespace CustomIdentity.Controllers
                         CreateNoWindow = true
                     };
 
-                    // Start the Python process with improved error handling
                     using (var process = Process.Start(processInfo))
                     {
                         if (process != null)
                         {
-                            // Capture Python output and errors
                             string output = await process.StandardOutput.ReadToEndAsync();
                             string error = await process.StandardError.ReadToEndAsync();
                             process.WaitForExit();
-                            process.Close();  // Explicitly close the process
+                            process.Close();  
 
-                            // Log the output and errors
                             if (!string.IsNullOrEmpty(output))
                             {
                                 _logger.LogInformation("Python Output: {Output}", output);
@@ -190,22 +154,7 @@ namespace CustomIdentity.Controllers
                     }
                     await _context.SaveChangesAsync();
 
-                    // Step 9: Validate and Update Video with its duration (received from Python script)
-                    if (videoRequest.EndTime.HasValue)
-                    {
-                        _logger.LogInformation("Start Time: {StartTime}, End Time: {EndTime}", model.StartTime, videoRequest.EndTime);
-
-                        // Ensure the EndTime is later than StartTime to avoid negative durations
-                        if (videoRequest.EndTime.Value > model.StartTime)
-                        {
-                            video.DurationInSeconds = (int)(videoRequest.EndTime.Value - model.StartTime).TotalSeconds;
-                        }
-                        else
-                        {
-                            _logger.LogWarning("Invalid EndTime: {EndTime} is earlier than StartTime: {StartTime}", videoRequest.EndTime, model.StartTime);
-                            video.DurationInSeconds = 0;  // Or some default behavior
-                        }
-                    }
+                    video.DurationInSeconds = CalculateVideoDuration(model.StartTime, videoRequest.EndTime);
 
                     await _context.SaveChangesAsync();
 
@@ -220,26 +169,65 @@ namespace CustomIdentity.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "An error occurred while uploading the video.");
-                    ModelState.AddModelError(string.Empty, "An error occurred while uploading the video. Please try again.");
+                    return Json(new
+                    {
+                        success = false,
+                        message = "An error occurred while uploading the video. Please try again."
+                    });
                 }
             }
             else
             {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                _logger.LogWarning("Model state is invalid: {Errors}", string.Join(", ", errors));
+                var errors = ModelState.Values
+                           .SelectMany(v => v.Errors)
+                           .Select(e => e.ErrorMessage)
+                           .ToList();
+
                 return Json(new
                 {
                     success = false,
-                    errors = errors
+                    message = "Validation failed.",
+                    errors
                 });
             }
 
-            return View(model); // Return to the view if model state is invalid
+            return View(model); 
+        }
+        public bool IsValidVideoFile(IFormFile file)
+        {
+            var allowedExtensions = new[] { ".mp4", ".avi", ".mov", ".mkv", ".wmv" };
+
+            if (file != null)
+            {
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                return allowedExtensions.Contains(extension);
+            }
+
+            return false;
+        }
+
+        public int CalculateVideoDuration(DateTime startTime, DateTime? endTime)
+        {
+            if (endTime.HasValue)
+            {
+                if (endTime.Value > startTime)
+                {
+                    return (int)(endTime.Value - startTime).TotalSeconds;
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid EndTime: {EndTime} is earlier than StartTime: {StartTime}", endTime, startTime);
+                    return 0;
+                }
+            }
+            else
+            {
+                return 0;  
+            }
         }
         [HttpGet]
         public IActionResult AllObjectDetections()
         {
-            // Retrieve all object detections from the database
             var objectDetections = _context.ObjectDetections
                 .OrderBy(od => od.DetectionTime)
                 .Select(od => new ObjectDetectionViewModel
@@ -260,16 +248,13 @@ namespace CustomIdentity.Controllers
         {
             try
             {
-                // Check if requestId is null and set it to DBNull for SQL execution
                 var requestIdParam = requestId.HasValue ? new SqlParameter("@RequestID", requestId.Value)
                                                          : new SqlParameter("@RequestID", DBNull.Value);
 
-                // Use FromSqlRaw to execute the stored procedure with the parameter
                 var objectCounts = _context.ObjectDetectionCounts
                     .FromSqlRaw("EXEC GetObjectDetectionCounts @RequestID", requestIdParam)
                     .ToList();
 
-                // Return the data as JSON
                 return Json(objectCounts);
             }
             catch (Exception ex)
@@ -282,16 +267,13 @@ namespace CustomIdentity.Controllers
         {
             try
             {
-                // Check if requestId is null and set it to DBNull for SQL execution
                 var requestIdParam = requestId.HasValue ? new SqlParameter("@RequestID", requestId.Value)
                                                          : new SqlParameter("@RequestID", DBNull.Value);
 
-                // Use FromSqlRaw to execute the stored procedure with the parameter
                 var objectCounts = _context.GetProbabilityDistributionByObjectID
                     .FromSqlRaw("EXEC GetProbabilityDistributionByObjectID @RequestID", requestIdParam)
                     .ToList();
 
-                // Return the data as JSON
                 return Json(objectCounts);
             }
             catch (Exception ex)
@@ -305,16 +287,13 @@ namespace CustomIdentity.Controllers
         {
             try
             {
-                // Check if requestId is null and set it to DBNull for SQL execution
                 var requestIdParam = requestId.HasValue ? new SqlParameter("@RequestID", requestId.Value)
                                                          : new SqlParameter("@RequestID", DBNull.Value);
 
-                // Use FromSqlRaw to execute the stored procedure with the parameter
                 var objectCounts = _context.GetDetectionTimeObjectCountsByRequestID
                     .FromSqlRaw("EXEC GetDetectionTimeObjectCountsByRequestID @RequestID", requestIdParam)
                     .ToList();
 
-                // Return the data as JSON
                 return Json(objectCounts);
             }
             catch (Exception ex)
@@ -322,6 +301,32 @@ namespace CustomIdentity.Controllers
                 _logger.LogError(ex, "Error retrieving object detection counts");
                 return Json(new List<object>());
             }
+        }
+        [HttpGet]
+        public IActionResult ReviewData(int videoRequestId)
+        {
+            ViewBag.VideoRequestId = videoRequestId;
+            var objectDetectionsQuery = _context.ObjectDetections
+                .Where(od => od.RequestID == videoRequestId)
+                .OrderBy(od => od.DetectionTime);
+            var objectDetections = objectDetectionsQuery
+                .Select(od => new ObjectDetectionViewModel
+                {
+                    ID = od.ID,
+                    ObjectID = od.ObjectID,
+                    Probability = od.Probability,
+                    DetectionTime = od.DetectionTime,
+                    ObjectCount = od.ObjectCount,
+                    BatchNumber = od.BatchNumber
+                })
+                .ToList();
+
+            if (!objectDetections.Any())
+            {
+                ViewBag.Message = "No object detections found for this video request.";
+            }
+
+            return View("ViewData", objectDetections);
         }
 
 
