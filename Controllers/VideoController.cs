@@ -302,6 +302,25 @@ namespace CustomIdentity.Controllers
                 return Json(new List<object>());
             }
         }
+       public IActionResult GetCalculatedPolutionByRequestID(int? requestId)
+        {
+            try
+            {
+                var requestIdParam = requestId.HasValue ? new SqlParameter("@RequestID", requestId.Value)
+                                                         : new SqlParameter("@RequestID", DBNull.Value);
+
+                var objectCounts = _context.GetCalculatedPolutionByRequestID
+                    .FromSqlRaw("EXEC GetCalculatedPolutionByRequestID @RequestID", requestIdParam)
+                    .ToList();
+
+                return Json(objectCounts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving object detection counts");
+                return Json(new List<object>());
+            }
+        }
         [HttpGet]
         public IActionResult ReviewData(int videoRequestId)
         {

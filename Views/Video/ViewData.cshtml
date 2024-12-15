@@ -4,7 +4,7 @@
     int? videoRequestId = ViewBag.VideoRequestId;
 }
 
-<div class="container">
+<div class="container" style="padding-bottom: 80px;">
     <div class="row">
         <div class="col-md-6">
             <h3>Aptikti objektai</h3>
@@ -17,17 +17,96 @@
         </div>
     </div>
 
-    
     <div id="timechart" class="col-md-12" style="display: none;">
         <h3>Atpažintų objektų kiekis per laiką</h3>
         <canvas id="detectionTimeChart" width="800" height="400"></canvas>
     </div>
-
-
-    @if (User.IsInRole("DeepUser") || User.IsInRole("Admin"))
+    @if (videoRequestId != null)
     {
-        <h2>Detalūs duomenys</h2>
-        <table class="table">
+        <div class="text-center mt-5" style="padding: 10px 0 60px 0;">
+            <h3 style="margin-bottom: 30px;">Ką norėtumėte daryti su duomenimis?</h3>
+
+            <div class="mb-4">
+                <button id="calculatePollutionButton" class="btn btn-primary mx-2" style="margin-right: 15px;">Skaičiuoti taršą</button>
+                @if (User.IsInRole("DeepUser") || User.IsInRole("Admin"))
+                {
+                    <button id="exportData" class="btn btn-primary mx-2" style="margin-left: 15px; background-color: #28a745; border-color: #28a745;">Eksportuoti duomenis</button>
+                }
+                else
+                {
+                    <button disabled id="exportData" class="btn btn-primary mx-2" style="margin-left: 15px; background-color: #28a745; border-color: #28a745; ">Eksportuoti duomenis</button>
+                }
+            </div>
+
+            <div id="pollutionMessage" class="text-center" style="display: none; margin-top: 30px;">
+                <span class="pollution-tooltip" style="margin-top: 20px; position: relative; display: inline-block;">
+                    <span class="question-mark" style="cursor: pointer; font-size: 24px; color: #007bff; border-bottom: 2px dotted #007bff; padding-bottom: 2px;">
+                        &#63;
+                    </span>
+                    <span class="pollution-info" style="display: none; position: absolute; background-color: #f7f7f7; padding: 10px; border-radius: 5px; border: 1px solid #ddd; top: 30px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 14px; max-width: 250px;">
+                    </span>
+                </span>
+            </div>
+
+
+            <div id="pollutionChartContainer" class="row mb-4" style="display: none; margin-top: 40px;">
+             
+                <div class="col-md-12">
+                    <canvas id="pollutionChart" class="w-100" style="height: auto;"></canvas>
+                </div>
+            </div>
+        </div>
+
+    }
+    
+
+<style>
+    .pollution-tooltip {
+        position: relative;
+        display: inline-block;
+    }
+
+    .question-mark {
+        cursor: pointer;
+        font-size: 24px;
+        color: #007bff;
+        margin-left: 5px;
+    }
+
+    .pollution-info {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        z-index: 1000;
+        display: none; /* Hide by default */
+    }
+
+    .pollution-tooltip:hover .pollution-info {
+        display: block; /* Show on hover */
+    }
+</style>
+
+
+
+@if (User.IsInRole("DeepUser") || User.IsInRole("Admin"))
+{
+    <h2>
+        Detalūs duomenys
+  
+        <button id="toggleTableButton" class="btn btn-link" style="font-size: 24px; margin-left: 10px; cursor: pointer;">
+            <i id="toggleArrow" class="bi bi-chevron-down"></i> 
+        </button>
+    </h2>
+
+   
+    <div id="detectionTableContainer" style="display: none;">
+        <table id="detectionTable" class="table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -52,11 +131,15 @@
                 }
             </tbody>
         </table>
-    }
+    </div>
+}
+
 </div>
 <script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.17.1/dist/xlsx.full.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
 <script>
     // Register necessary Chart.js components for time-based axes and other features
@@ -213,6 +296,130 @@
                 });
             })
             .catch(error => console.error('Error loading detection time chart data:', error));
+
+document.getElementById('calculatePollutionButton')?.addEventListener('click', function () {
+    var videoRequestId = '@videoRequestId';
+    var requestIdParam = videoRequestId && videoRequestId !== 'null' ? videoRequestId : '';
+
+    // Hide chart initially
+    document.getElementById('pollutionChartContainer').style.display = 'none'; 
+
+    // Fetch data for Calculated Pollution
+    fetch('@Url.Action("GetCalculatedPolutionByRequestID", "Video")?requestId=' + requestIdParam)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                console.log('No pollution data found');
+                return;
+            }
+
+            // Prepare the chart data
+            const labels = data.map(item => item.objectType); // Don't capitalize objectType here
+            const coData = data.map(item => item.co || 0);  // Ensure that null or undefined values are handled
+            const noxData = data.map(item => item.nox || 0);
+            const pmData = data.map(item => item.pm || 0);
+            const vocData = data.map(item => item.voc || 0);
+
+            // Create the chart
+            const ctx = document.getElementById('pollutionChart').getContext('2d');
+            const pollutionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'CO',
+                            data: coData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'NOX',
+                            data: noxData,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'PM',
+                            data: pmData,
+                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                            borderColor: 'rgba(255, 159, 64, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'VOC',
+                            data: vocData,
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Tarša'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Transporto priemonės tarša'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'g/min'
+                            }
+                        }
+                    }
+                }
+            });
+
+                    document.getElementById('pollutionChartContainer').style.display = 'block';
+
+                    // Update the pollution message
+                    let message = `Sankryžos patalpintame įraše aptiktos ${data.length} taršą keliančios transporto priemonės: `;
+                    const vehicleTypes = data.map(item => item.objectType).join(', ');
+
+                    message += vehicleTypes + '. ';
+                    const objectsWithPollution = data.filter(item => item.co || item.nox || item.pm || item.voc);
+
+                    message += `Per minutę sukelta tarša: `;
+
+                    document.getElementById('pollutionMessage').innerHTML = message +
+                        '<span class="pollution-tooltip">' +
+                        '<span class="question-mark" style="cursor: pointer; font-size: 24px; color: #007bff;">&#63;</span>' +
+                        '<span class="pollution-info">' +
+                        '<h5>Taršos rūšys:</h5>' +
+                        '<ul class="list-unstyled" style="text-align: left;">' +
+                        '<li><strong>CO (Anglies monoksidas):</strong> nuodingos dujas, kurias išskiria neefektyvūs degimo procesai.</li>' +
+                        '<li><strong>NOX (Azoto oksidai):</strong> azoto ir deguonies junginiai, susidarantys per aukštas temperatūras degimo metu.</li>' +
+                        '<li><strong>PM (Smulkios dalelės):</strong> smulkios kietosios dalelės, kurios gali patekti į kvėpavimo takus ir sukelti sveikatos problemų.</li>' +
+                        '<li><strong>VOC (Lakieji organiniai junginiai):</strong> skysčiai arba dujos, kurios išgaruoja ir prisideda prie oro taršos bei šiltnamio efektą sukeliančių dujų susidarymo.</li>' +
+                        '</ul>' +
+                        '</span>' +
+                        '</span>';
+                    document.getElementById('pollutionMessage').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error loading pollution data:', error);
+        });
+});
+
+
+        document.getElementById('exportData').addEventListener('click', function () {
+            var table = document.getElementById('detectionTable');
+            var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet 1" }); 
+            XLSX.writeFile(wb, 'Detalus_duomenys.xlsx');
+        });
     }
 
     // Function to get a color from the predefined list
@@ -227,6 +434,21 @@
         ];
         return colorList[index % colorList.length];  // Ensure index is within bounds of the color list
     }
+    document.getElementById('toggleTableButton').addEventListener('click', function () {
+        var tableContainer = document.getElementById('detectionTableContainer');
+        var arrowIcon = document.getElementById('toggleArrow');
+
+        // Toggle table visibility
+        if (tableContainer.style.display === "none") {
+            tableContainer.style.display = "block";
+            arrowIcon.classList.remove('bi-chevron-down');
+            arrowIcon.classList.add('bi-chevron-up');
+        } else {
+            tableContainer.style.display = "none";
+            arrowIcon.classList.remove('bi-chevron-up');
+            arrowIcon.classList.add('bi-chevron-down');
+        }
+    });
 
 
 </script>

@@ -17,7 +17,8 @@ namespace CustomIdentity.Data
         public DbSet<ObjectDetectionCount> ObjectDetectionCounts { get; set; }
         public DbSet<GetProbabilityDistributionByObjectID> GetProbabilityDistributionByObjectID { get; set; }
         public DbSet<GetDetectionTimeObjectCountsByRequestID> GetDetectionTimeObjectCountsByRequestID { get; set; }
-        
+        public DbSet<GetCalculatedPolutionByRequestID> GetCalculatedPolutionByRequestID { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
